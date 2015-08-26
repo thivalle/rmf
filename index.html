@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+	<meta charset="UTF-8">
+	<meta name="description" content="">
+	<meta name="viewport" content="width=device-width">
+	<link rel="stylesheet" href="css/style.css">
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.4.0/css/font-awesome.min.css">
+	<script src="https://code.jquery.com/jquery-git2.min.js"></script>
+	<title>GRM - Mobile Player</title>
+</head>
+<body>
+	<div class="load"><i class="fa fa-refresh fa-spin"></i></div>
+	<audio id="player_rmf"></audio>
+	<div class="logormf"><i class="fa fa-random"></i><i class="fa fa-retweet" style="display:none"></i></div>
+
+	
+
+	<div id="playerdiv">
+		<i class="fa fa-bars"></i>
+
+		
+		
+		<span class="music_name"></span>
+		<div class="bar">
+			<div class="progress_box">
+				<div class="progress"></div>
+				<div class="point"></div>
+			</div>
+			<span class="music_time">00:00</span>
+			<span class="total_time">00:00</span>
+		</div>
+
+		<div class="controls">
+			<i class="fa fa-backward"></i>
+			<i class="fa fa-play"></i>
+			<i class="fa fa-pause"></i>	
+			<i class="fa fa-forward"></i>
+		</div>
+
+		
+
+	</div>
+	<div id="playlist">
+		<div class="box">
+			<div class="fechar"><i class="fa fa-close"></i></div>
+			<div class="loadmusic">
+				
+			</div>
+
+		</div>
+
+	</div>
+
+
+
+
+
+	<script>
+
+
+		function carregar_xml(shuffle) {
+
+			$('.load').show();
+			//$('.loadmusic').append('<div class="item" data-src="'+file+'"><i class="fa fa-music"></i>'+name+'</div>');
+
+
+			$.ajax({
+				url: 'http://www.radiomusicfitness.com/mp3player/xml.php?shuffle='+shuffle,
+				type: "GET",
+				dataType: "xml",
+				success: function (result) {
+					
+					$('.loadmusic').html('');
+					$('#playlist .box .item').unbind('click');
+					
+					$(result).find('music').each(function () {
+						
+							file = $(this).find('file').text();
+							name = $(this).find('name').text();
+							$('.loadmusic').append('<div class="item" data-src="'+file+'"><i class="fa fa-music"></i>'+name+'</div>');
+					});
+
+
+					$('#playlist .box .item').click(function(event) {
+						$('#playlist').removeClass('open');
+						musicaatual = $(this).index();
+						tocar_musica();
+					});
+					$('.load').hide();
+					$('#playlist .box .item').eq(0).click();
+					
+				}
+			});
+
+
+		}
+
+
+
+				function tocar_musica() {
+					audioPlayer.removeEventListener('ended', next_music);
+					audioPlayer.removeEventListener('timeupdate', update_time);
+					audioPlayer.pause();
+					$('.music_name').html($('#playlist .box .item').eq(musicaatual).text());
+					audioPlayer.src = "http://www.radiomusicfitness.com/mp3player/music/"+$('#playlist .box .item').eq(musicaatual).attr("data-src");
+
+					audioPlayer.addEventListener('ended', next_music);
+					audioPlayer.addEventListener('timeupdate', update_time);
+					audioPlayer.play();
+
+					$('#playlist .box .item').removeClass('sel');
+					$('#playlist .box .item').eq(musicaatual).addClass('sel');
+				}
+
+				function limpar_porcentagem() {
+
+					$('#playerdiv .bar .progress').css('width','0%');
+
+
+				}
+
+
+				var audioPlayer = document.getElementById("player_rmf");
+
+				var poratual = 0;
+				var musicaatual = 0;
+
+				function next_music() {
+					limpar_porcentagem();
+					musicaatual++;
+					if (musicaatual>=($('#playlist .box .item').length-1)) { musicaatual = 0;}
+					tocar_musica();
+				}
+
+
+				function update_time() {
+
+
+					if (audioPlayer.paused==false) {
+						$('#playerdiv .fa-pause').show();
+						$('#playerdiv .fa-play').hide();
+					} else {
+						$('#playerdiv .fa-pause').hide();
+						$('#playerdiv .fa-play').show();
+					}
+
+					total = audioPlayer.duration;
+					atual =audioPlayer.currentTime;
+
+
+					por = (atual*100)/total;
+					$('.music_time').html(formatSecondsAsTime(atual));
+					$('.total_time').html(formatSecondsAsTime(total));		
+					$('#playerdiv .bar .progress').css('width',por+'%');
+
+				}
+
+				jQuery(document).ready(function($) {
+
+					$('#playerdiv .fa-pause').show();
+					$('#playerdiv .fa-play').hide();
+					$('#playerdiv').find('.big').addClass('p'+poratual);
+
+
+					$('#playerdiv .fa-play').click(function(event) {
+						audioPlayer.play();
+						$('#playerdiv .fa-play').hide();
+						$('#playerdiv .fa-pause').show();
+					});
+					$('#playerdiv .fa-pause').click(function(event) {
+						audioPlayer.pause();
+						$('#playerdiv .fa-play').show();
+						$('#playerdiv .fa-pause').hide();
+					});
+
+					$('#playerdiv .fa-forward').click(function(event) {
+						next_music();
+					});
+
+					$('#playerdiv .fa-backward').click(function(event) {
+						musicaatual--;
+						if (musicaatual<0) { musicaatual = ($('#playlist .box .item').length-1) }
+							tocar_musica();
+					});
+
+					$('#playerdiv .fa-bars').click(function(event) {
+						$('#playlist').addClass('open');
+					});
+
+					$('.fechar').click(function(event) {
+						$('#playlist').removeClass('open');
+					});
+
+					/*
+					$('#playlist .box .item').click(function(event) {
+						$('#playlist').removeClass('open');
+						musicaatual = $(this).index();
+						tocar_musica();
+					});
+
+					$('#playlist .box .item').eq(0).click();
+					*/
+					carregar_xml(0);
+
+					$('.fa-random').click(function(event) {
+						$('.fa-retweet').show();
+						$('.fa-random').hide();
+						carregar_xml(1);
+					});
+
+					$('.fa-retweet').click(function(event) {
+						$('.fa-retweet').hide();
+						$('.fa-random').show();
+						carregar_xml(0);
+					});
+					//$('#playerdiv .fa-play').click();
+
+
+
+					if (audioPlayer.paused==false) {
+						$('#playerdiv .fa-pause').show();
+						$('#playerdiv .fa-play').hide();
+					} else {
+						$('#playerdiv .fa-pause').hide();
+						$('#playerdiv .fa-play').show();
+					}
+
+				});
+
+
+function formatSecondsAsTime(secs, format) {
+	var hr  = Math.floor(secs / 3600);
+	var min = Math.floor((secs - (hr * 3600))/60);
+	var sec = Math.floor(secs - (hr * 3600) -  (min * 60));
+
+	if (min < 10){ 
+		min = "0" + min; 
+	}
+	if (sec < 10){ 
+		sec  = "0" + sec;
+	}
+ 	if (min!=NaN) {
+		return min + ':' + sec;
+	}
+}
+
+</script>
+
+</body>
+</html>
